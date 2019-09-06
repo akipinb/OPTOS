@@ -1,0 +1,230 @@
+TL; DR
+
+機械学習をやってると、どうしてもPython自体や、ライブラリのバージョンをプロジェクト毎に切り替えたいという欲求が出てきます。
+そんなときどうしてますか？
+
+venvでsourceと戦う？
+Dockerに閉じ込める？
+
+もっと簡単な方法があります。それがpyenv-virtualenvです。
+
+pyenv-virtualenvで出来ること
+pyenvだけではだめです。virtualenvだけでもだめです。pyenv-virtualenvだからこそ出来ることが沢山あります。
+
+pyenv	venv/virtualenv	pyenv-virtualenv
+標準で使える	つらたん	おけまる/つらたん	つらたん
+色んなバージョンのPythonをインストール出来る	おけまる	つらたん	おけまる
+Pythonのバージョンを自動で切り替える	おけまる	つらたん	おけまる
+プロジェクト毎にライブラリを別にインストールする	つらたん	おけまる	おけまる
+プロジェクト毎に自動で環境を切り替える	おけまる	つらたん	おけまる
+シェル毎に環境を切り替える	おけまる	おけまる	おけまる
+Anaconda/Minicondaと連携する	つらたん	つらたん	おけまる
+※おけまる・・・可能/ミス無く使うことが出来る
+※つらたん・・・不可能/使うときに注意が必要
+
+なお、今回virtualenvは使いません。Minicondaが全てを引き受けてくれます。
+
+インストール方法
+詳しくは公式1 2にお任せしますが、私は色んな環境で同じように使いたかったので下記のような内容を.bashrcに書いています。
+
+export PYENV_ROOT="$HOME/.pyenv"
+if [ -x "$PYENV_ROOT/bin/pyenv" ]; then
+  export PATH="$PYENV_ROOT/bin:$PATH"
+  . <(pyenv init -)
+  [ -d "$PYENV_ROOT/plugins/pyenv-virtualenv" ] && . <(pyenv virtualenv-init -)
+else
+  install_pyenv() {
+    git clone https://github.com/pyenv/pyenv.git "$HOME/.pyenv"
+    git clone https://github.com/pyenv/pyenv-virtualenv.git "$HOME/.pyenv/plugins/pyenv-virtualenv"
+    export PATH="$PYENV_ROOT/bin:$PATH"
+    . <(pyenv init -)
+    [ -d "$PYENV_ROOT/plugins/pyenv-virtualenv" ] && . <(pyenv virtualenv-init -)
+  }
+fi
+シェルをリロードしてからinstall_pyenvと打ってインストール完了です。
+
+最初にやること
+pyenv/pyenv-virtualenvはインストール出来ましたが、環境を作成するためのツールがまだ入っていないのでMinicondaを入れましょう。
+
+その1: Minicondaを入れる
+環境を切り替えるツールとしてvenv/virtualenvを使っても良いですが、Pythonのバージョンまで切り替えたいのでここではMinicondaを使います。
+Pythonにはもともとpipというパッケージマネージャーがありますが、MinicondaはパッケージのみならずPythonのインストールまで出来る「環境マネージャー」です。
+
+$ pyenv install miniconda3-latest
+インストール出来る環境はpyenv install --listで一覧出来ます。
+
+$ pyenv install --list
+Available versions:
+  2.1.3
+  2.2.3
+  2.3.7
+  2.4
+  2.4.1
+  2.4.2
+  2.4.3
+  2.4.4
+  2.4.5
+  2.4.6
+  2.5
+...
+その2: Minicondaを有効化する
+Minicondaを使うためのコマンドはcondaです。conda helpでヘルプが出ます。
+
+$ conda help
+pyenv: conda: command not found
+
+The `conda' command exists in these Python versions:
+  miniconda3-latest
+・・・残念ですが、pyenvでインストールした直後はシステムとは別にインストールされているため、まだ使えません。condaを入れた環境は今後常に使い続けるのでグローバルで有効にしておきましょう。
+
+$ pyenv global system miniconda3-latest
+$ conda help
+usage: conda [-h] [-V] command ...
+
+conda is a tool for managing and deploying applications, environments and packages.
+...
+ここでは、デフォルトの環境ではシステムのPythonとインストールしたminiconda3-latestを使うという指定をしています。
+
+pyenv globalの他に、pyenv shellやpyenv localが使用できます。これらは後ほど紹介します。
+
+これでようやくMinicondaが有効化され、Pythonのインストール準備が整いました。
+次は全く新しいPython環境を用意してみましょう。
+
+使い方
+その1: 環境を作る
+$ conda create --name brand-new-python python=3.7
+これで名前「brand-new-python」の環境にPython 3.7がインストールされます。
+ただし、pyenv installの時と同じように、このままではこの環境は使えません。
+
+その2: 環境を使えるようにする
+下記のコマンドで、作った環境をそのシェルでだけ有効化できます。
+
+$ pyenv shell miniconda3-latest/envs/brand-new-python
+$ python -V
+Python 3.7.0
+環境名は {pyenvで作った環境}/envs/{condaで作った環境}となります。
+
+環境を有効化出来たらようやくパッケージがインストール出来ます。
+ここではOpenCVをインストールしてみます。pipでインストールするとGUI抜きの「いけず」でしたが、condaのパッケージならGUIも使えます。もちろんNumPyなどの必要なライブラリも自動で入ってくれます。
+
+$ conda install opencv
+試しに画像を表示してみます。
+
+import cv2
+import numpy as np
+
+cv2.imshow('img', np.full((256, 256, 3), 255, dtype=np.uint8))
+cv2.waitKey()
+上記を適当なファイルに保存して、pythonコマンドで実行してみましょう。
+
+$ python example.py
+純白のウィンドウが表示されます。
+
+なお、condaに無いパッケージはいつも通りpipでインストールします。
+
+$ conda install easydict
+Fetching package metadata ...........
+
+PackageNotFoundError: Packages missing in current channels:
+
+  - easydict
+
+We have searched for the packages in the following channels:
+...
+
+$ pip install easydict
+Collecting easydict
+mkl-random 1.0.1 requires cython, which is not installed.
+mkl-fft 1.0.0 requires cython, which is not installed.
+Installing collected packages: easydict
+Successfully installed easydict-1.7
+その3: 自動的に有効化するようにする
+プロジェクトのディレクトリに移動して下記コマンドを実行すると、以降ディレクトリに移動した際やディレクトリ内のスクリプトを実行する際は環境を自動で切り替えてくれます。
+
+$ cd project
+$ python -V
+Python 2.7.15
+$ pyenv local miniconda3-latest/envs/brand-new-python
+$ python -V
+Python 3.7.0
+$ cd ..
+$ python -V
+Python 2.7.15
+これを元に戻したい場合はpyenv local --unsetです。
+
+$ cd project
+$ python -V
+Python 3.7.0
+$ pyenv local --unset
+$ python -V
+Python 2.7.15
+AnacondaとMinicondaの違い
+Anacondaは150以上ものパッケージが自動でインストールされて割と邪魔です。それだけの違いです。
+
+Over 150 packages are automatically installed with Anaconda.
+https://docs.anaconda.com/anaconda/ より
+
+TL; DR
+pyenv1とpyenv-virtualenv2をインストール
+pyenv install miniconda3-latestでminicondaをインストール
+pyenv global system miniconda3-latestでminicondaを有効化
+conda create --name NAME python=X.YでPython環境を作成
+pyenv shell miniconda3-latest/envs/NAMEで環境をシェルでだけ切り替え
+pyenv local miniconda3-latest/envs/NAMEでそのディレクトリ内では自動で環境を有効化
+conda install package1 package2 ...でパッケージをインストール
+condaに無いパッケージは通常通りpip install ...でインストール
+この時インストール先は$PYENV_ROOT以下のディレクトリになるのでsudoは不要
+pip install --user ...とすると~/.localに入って環境を分けた意味が無くなるので注意
+As you wish.
+Tips
+環境を消したい！
+pyenv virtualenv-deleteを使いましょう。
+
+$ pyenv virtualenv-delete miniconda3-latest/envs/brand-new-python
+現在の環境を確認したい
+pyenv versionを使いましょう。
+
+ $ pyenv version
+system (set by /.../.pyenv/version)
+miniconda3-4.3.30 (set by /.../.pyenv/version)
+Python2とPython3の環境を同時に使いたい
+condaでは同時に複数のバージョンのPythonを入れることは出来ませんが、pyenvで複数環境の同時有効化が出来るのでそれを使います。
+
+$ conda create --name python2 python=2.7
+$ conda create --name python3 python=3.7
+$ pyenv local miniconda3-latest/envs/python2 miniconda3-latest/envs/python3
+$ pyenv version
+miniconda3-latest/envs/python2 (set by /../.python-version)
+miniconda3-latest/envs/python3 (set by /../.python-version)
+$ python2 -V
+Python 2.7.15 :: Anaconda, Inc.
+$ python3 -V
+Python 3.7.0
+NeoVimで使う
+g:python_host_prog/g:python3_host_progに $PYENV_ROOT/shims/pythonXを設定してあげれば大丈夫ですが、環境毎にneovimパッケージが必要です。
+
+" init.vim
+if has('nvim')
+  if filereadable($PYENV_ROOT . '/shims/python2')
+    let g:python_host_prog = $PYENV_ROOT . '/shims/python2'
+  else
+    let g:python_host_prog = 'python2'
+  endif
+
+  if filereadable($PYENV_ROOT . '/shims/python3')
+    let g:python3_host_prog = $PYENV_ROOT . '/shims/python3'
+  else
+    let g:python3_host_prog = 'python3'
+  endif
+endif
+system version not found in PATHと怒られる
+最近のディストロではpyenv global systemの際に pyenv: system version not found in PATHと怒られることがあります。
+原因としては/usr/bin/pythonがいないことのようなので、update-alternativeなどでシンボリックリンクを張ると良いようです。
+
+sudo update-alternatives -install /usr/bin/python python /usr/bin/python3 1
+最後に
+condaならいい感じになってるパッケージがいい感じにインストール出来るのがpipと違っていい感じ。
+
+脚注
+pyenv: https://github.com/pyenv/pyenv#installation↩
+pyenv-virtualenv: https://github.com/pyenv/pyenv-virtualenv#installation↩
