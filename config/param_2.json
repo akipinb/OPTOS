@@ -1,0 +1,23 @@
+
+    "acc": "class",
+    "batch": 32,
+    "csv": null,
+    "dataset": "dataset_minimini_dm/",
+    "epochs": 400,
+    "in_channel": -1,
+    "loss": "nll",
+    "lr": 0.1,
+    "mean_thresh": 0.85,
+    "model": "xception",
+    "momentum": 0.9,
+    "no_save_model": true,
+    "optimizer": "adam",
+    "out": "tmp",
+    "out_channel": -1,
+    "padding": 31,
+    "patch": false,
+    "patch_size": 128,
+    "scheduler": "step-16",
+    "val_batch": 1024,
+    "weight": null
+}
